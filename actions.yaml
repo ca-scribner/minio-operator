@@ -1,0 +1,7 @@
+make-bucket:
+  description: Make a new bucket in the Minio instance, if it does not exist
+  params:
+    name:
+      type: string
+      description: the name of the bucket to create
+  required: [name]
