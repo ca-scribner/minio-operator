@@ -19,6 +19,8 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from serialized_data_interface import NoCompatibleVersions, NoVersionsListed, get_interfaces
 
+logging.getLogger().error("DEBUG MESSAGE - CHARM IS LOADED")
+
 
 class Operator(CharmBase):
     _stored = StoredState()
@@ -26,6 +28,7 @@ class Operator(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.log = logging.getLogger()
+        self.log.info("ALIVE!!!")
 
         # Random salt used for hashing config
         self._stored.set_default(hash_salt=_gen_pass())
@@ -161,6 +164,8 @@ class Operator(CharmBase):
             secret_key=self._get_secret_key(),
             secure=False,
         )
+        self.log.info(f"Got mc_client {mc_client}")
+
         found = mc_client.bucket_exists(bucket_name)
         if found:
             msg = f"bucket {bucket_name} already exists"
@@ -172,6 +177,8 @@ class Operator(CharmBase):
                 mc_client.make_bucket(bucket_name)
             except Exception as e:
                 event.fail(f"failed to create bucket {bucket_name}: {e}")
+                # Do we need to return here?
+                self.log.error("DEBUG MESSAGE - REMOVE THIS: Did we reach here?  If so, we need to return earlier")
             self.log.info(msg)
             event.log(msg)
 
