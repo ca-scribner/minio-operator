@@ -12,3 +12,5 @@ bases:
 parts:
   charm:
     charm-python-packages: [setuptools, pip]  # Fixes install of some packages
+    build-packages:
+      - libffi-dev  # for cffi
