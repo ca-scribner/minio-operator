@@ -3,6 +3,10 @@
 # See LICENSE file for licensing details.
 
 import logging
+
+logging.getLogger().error("DEBUG MESSAGE - CHARM IS STARTING IMPORTS")
+
+
 from base64 import b64encode
 from hashlib import sha256
 from random import choices
@@ -10,12 +14,16 @@ from string import ascii_uppercase, digits
 
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from minio import Minio
 from oci_image import OCIImageResource, OCIImageResourceError
+from ops import ActionEvent
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from serialized_data_interface import NoCompatibleVersions, NoVersionsListed, get_interfaces
+
+logging.getLogger().error("DEBUG MESSAGE - CHARM IS LOADED")
 
 
 class Operator(CharmBase):
@@ -24,6 +32,7 @@ class Operator(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.log = logging.getLogger()
+        self.log.info("ALIVE!!!")
 
         # Random salt used for hashing config
         self._stored.set_default(hash_salt=_gen_pass())
@@ -54,6 +63,8 @@ class Operator(CharmBase):
             self.on["object-storage"].relation_joined,
         ]:
             self.framework.observe(event, self.main)
+
+        self.framework.observe(self.on.make_bucket_action, self.on_make_bucket_action)
 
     def main(self, event):
         try:
@@ -146,6 +157,36 @@ class Operator(CharmBase):
 
         self.model.pod.set_spec(spec)
         self.model.unit.status = ActiveStatus()
+
+    def on_make_bucket_action(self, event: ActionEvent):
+        """Make a bucket, if it doesn't exist."""
+        bucket_name = event.params.get("name")
+        self.log.info(f"Creating bucket with name {bucket_name}")
+        mc_client = Minio(
+            f"service/minio:{self.config['port']})",
+            access_key=self.model.config["access-key"],
+            secret_key=self._get_secret_key(),
+            secure=False,
+        )
+        self.log.info(f"Got mc_client {mc_client}")
+
+        found = mc_client.bucket_exists(bucket_name)
+        if found:
+            msg = f"bucket {bucket_name} already exists"
+            self.log.info(msg)
+            event.log(msg)
+        else:
+            msg = f"creating bucket {bucket_name}"
+            try:
+                mc_client.make_bucket(bucket_name)
+            except Exception as e:
+                event.fail(f"failed to create bucket {bucket_name}: {e}")
+                # Do we need to return here?
+                self.log.error(
+                    "DEBUG MESSAGE - REMOVE THIS: Did we reach here?  If so, we need to return earlier"
+                )
+            self.log.info(msg)
+            event.log(msg)
 
     def _check_leader(self):
         if not self.unit.is_leader():
