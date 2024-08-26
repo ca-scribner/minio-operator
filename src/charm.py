@@ -3,6 +3,10 @@
 # See LICENSE file for licensing details.
 
 import logging
+
+logging.getLogger().error("DEBUG MESSAGE - CHARM IS STARTING IMPORTS")
+
+
 from base64 import b64encode
 from hashlib import sha256
 from random import choices
@@ -178,7 +182,9 @@ class Operator(CharmBase):
             except Exception as e:
                 event.fail(f"failed to create bucket {bucket_name}: {e}")
                 # Do we need to return here?
-                self.log.error("DEBUG MESSAGE - REMOVE THIS: Did we reach here?  If so, we need to return earlier")
+                self.log.error(
+                    "DEBUG MESSAGE - REMOVE THIS: Did we reach here?  If so, we need to return earlier"
+                )
             self.log.info(msg)
             event.log(msg)
 
